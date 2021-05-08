@@ -24,7 +24,7 @@ set(SourceDir "${ProjectDir}/src")
 
 # ===
 
-set(Libraries "-lpthread")
+set(Libraries "pthread")
 
 set(SourceFiles
 	"${SourceDir}/aes/AESEncryption.cpp"
@@ -53,7 +53,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMakeFlags}")
 
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
-if("${COMPLIB_STATIC}")
+if("${ENCLIB_STATIC}")
 	add_library("${LibraryName}" STATIC "${SourceFiles}" "${HeaderFiles}")
 else()
 	add_library("${LibraryName}" SHARED "${SourceFiles}" "${HeaderFiles}")
