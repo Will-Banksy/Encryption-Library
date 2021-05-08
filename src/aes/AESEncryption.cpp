@@ -18,9 +18,10 @@ std::vector<uint8_t> AESEncryption::AES128(std::vector<uint8_t> data, std::vecto
 
 	// Generate the round keys
 	std::vector<RoundKey> roundKeys = GenRoundKeys128(key, rand);
-
+#if __cplusplus >= 201402L
 	// Using the counter mode of operation, so we need a counter - This needs to be 128 bits, the size of an AES block, so I use a convenient uint128_t library: https://github.com/calccrypto/uint128_t
 	uint128_t counter = RAND_128;
+#endif
 
 	// Size of data should be a multiple of 16, so it can be split into blocks
 	size_t dataSizeOrig = data.size();
