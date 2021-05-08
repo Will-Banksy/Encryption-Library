@@ -71,7 +71,9 @@ std::vector<uint8_t> AESEncryption::AES128(std::vector<uint8_t> data, std::vecto
 		}
 	}
 
-	data.resize(dataSizeOrig); // Resize back to what it was before
+	memcpy(data.data(), blocks.data(), data.size());
+
+	data.resize(dataSizeOrig); // Resize back to what it was before. Cut the crap
 
 	delete rand;
 	rand = nullptr;
