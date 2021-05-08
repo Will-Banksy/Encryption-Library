@@ -7,7 +7,6 @@ set(ProjectName "EncryptionLibrary")
 set(ProjectVersion "1.0")
 set(LibraryName "enclib")
 
-set(CMAKE_CXX_STANDARD 20)
 set(CMakeFlags "")
 set(CMakeDebugFlags "")
 
