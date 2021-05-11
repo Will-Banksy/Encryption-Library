@@ -174,11 +174,139 @@ void AESEncryption::EncryptBlock128(Block<128>& block, const std::vector<RoundKe
 	}
 #else
 	aesni = false;
-#error Hardware accelerated AES is only implemented for GCC on x86 and x86_64 - Compiling using non-accelerated AES
+#warning Hardware accelerated AES is only implemented for GCC on x86 and x86_64 - Compiling using non-accelerated AES
 #endif
 
 	if(!aesni) {
-		// TODO Implement AES. I'll do that at some point
-		assert(false);
+		// TODO Test AES
+		for(uint8_t i = 0; i < roundKeys.size(); i++) {
+			if(i == 0) {
+				// XOR
+// 				uint128_t& b = *(uint128_t*)block.m_BlockStart;
+// 				b ^= *(uint128_t*)&roundKeys.at(0);
+				AddRoundKey128(block, roundKeys.at(i));
+			} else if(i == roundKeys.size() - 1) {
+				// AESENCLAST
+				SubBytes128(block, roundKeys.at(i));
+				ShiftRows128(block, roundKeys.at(i));
+				AddRoundKey128(block, roundKeys.at(i));
+			} else {
+				// AESENC
+				SubBytes128(block, roundKeys.at(i));
+				ShiftRows128(block, roundKeys.at(i));
+				MixColumns128(block, roundKeys.at(i));
+				AddRoundKey128(block, roundKeys.at(i));
+			}
+		}
 	}
+}
+
+void AESEncryption::SubBytes128(Block<128>& data, const RoundKey& roundKey) {
+	// Rijndael substitution box. Apparently memory access patters to this array can make the implementation vulnerable to side-channel attacks
+	static uint8_t sbox[] = { 0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb, 0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb, 0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e, 0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25, 0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92, 0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84, 0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06, 0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b, 0x3a, 0x91, 0x11, 0x41, 0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6, 0x73, 0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9, 0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e, 0x47, 0xf1, 0x1a, 0x71, 0x1d, 0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b, 0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0, 0xfe, 0x78, 0xcd, 0x5a, 0xf4, 0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07, 0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f, 0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef, 0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61, 0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d };
+	// Loop through all bytes in data
+	for(uint8_t i = 0; i < data.c_BlockDims; i++) {
+		for(uint8_t j = 0; j < data.c_BlockDims; j++) {
+			data.At(i, j) = sbox[data.At(i, j)]; // Replace each byte with the corresponding byte in the substitution box
+		}
+	}
+}
+
+inline void Swap(uint8_t& num1, uint8_t& num2) {
+	uint8_t tmp = num1;
+	num1 = num2;
+	num2 = tmp;
+}
+
+inline void ShiftLeft(uint8_t& b0, uint8_t& b1, uint8_t& b2, uint8_t& b3, uint8_t places) {
+	switch(places) {
+		case 0:
+			return;
+
+		case 1:
+			Swap(b3, b0);
+			Swap(b0, b1);
+			Swap(b1, b2);
+			return;
+
+		case 2:
+			Swap(b0, b2);
+			Swap(b1, b3);
+			return;
+
+		case 3:
+			Swap(b0, b1);
+			Swap(b0, b2);
+			Swap(b0, b3);
+			return;
+
+		case 4:
+			return;
+
+		default:
+			assert(false);
+			return;
+	}
+}
+
+void AESEncryption::ShiftRows128(Block<128>& data, const RoundKey& roundKey) {
+	for(uint8_t y = 0; y < data.c_BlockDims; y++) {
+		uint8_t shift = y;
+		if(shift > 0) {
+			ShiftLeft(data.At(0, y), data.At(1, y), data.At(2, y), data.At(3, y), shift);
+		}
+	}
+}
+
+/// Finite Field Arithmetic namespace. These functions do all their operations inside the Galois Field GF(2^8)
+/// See <a href="https://etutorials.org/Networking/802.11+security.+wi-fi+protected+access+and+802.11i/Appendixes/Appendix+A.+Overview+of+the+AES+Block+Cipher/Finite+Field+Arithmetic/">This website for an overview</a>
+namespace FFA {
+	/// Addition is just XOR
+	uint8_t Add(uint8_t n1, uint8_t n2) {
+		return n1 ^ n2;
+	};
+
+	/// Subtraction is just XOR - Same as addition
+	uint8_t Sub(uint8_t n1, uint8_t n2) {
+		return n1 ^ n2;
+	}
+
+	uint16_t Mult(uint8_t n1, uint8_t n2) {
+		uint8_t res = 0;
+		for(int8_t i = 7; i >= 0; i--) { // Go from MSB (index 7) to LSB (index 0)
+			// If the MSB of res is 1, that means it's going to overflow
+			if((res >> 7) & 0x1) {
+				res <<= 1;
+				res ^= 0b00011011; // XOR with Galois Field bounding irreducible polynomial for GF(2^8). This is actually 100011011 but the MSB of that is out of range so is unused in the calculation
+			} else {
+				res <<= 1;
+			}
+			// If bit at index i is 1
+			if((n2 >> i) & 0x1) {
+				res ^= n1;
+			}
+		}
+		return res;
+	}
+}
+
+inline void MixColumn(uint8_t& b0, uint8_t& b1, uint8_t& b2, uint8_t& b3) {
+	static uint8_t block[] = { 2, 3, 1, 1, 1, 2, 3, 1, 1, 1, 2, 3, 3, 1, 1, 2 };
+	static Block<128> matrix = Block<128>((uint128_t*)block);
+
+	using namespace FFA;
+	b0 = Mult(b0, matrix(0, 0)) ^ Mult(b1, matrix(1, 0)) ^ Mult(b2, matrix(2, 0)) ^ Mult(b3, matrix(3, 0));
+	b1 = Mult(b0, matrix(0, 1)) ^ Mult(b1, matrix(1, 1)) ^ Mult(b2, matrix(2, 1)) ^ Mult(b3, matrix(3, 1));
+	b2 = Mult(b0, matrix(0, 2)) ^ Mult(b1, matrix(1, 2)) ^ Mult(b2, matrix(2, 2)) ^ Mult(b3, matrix(3, 2));
+	b3 = Mult(b0, matrix(0, 3)) ^ Mult(b1, matrix(1, 3)) ^ Mult(b2, matrix(2, 3)) ^ Mult(b3, matrix(3, 3));
+}
+
+void AESEncryption::MixColumns128(Block<128>& data, const RoundKey& roundKey) {
+	for(uint8_t col = 0; col < data.c_BlockDims; col++) {
+		MixColumn(data(col, 0), data(col, 1), data(col, 2), data(col, 3));
+	}
+}
+
+void AESEncryption::AddRoundKey128(Block<128>& data, const RoundKey& roundKey) {
+	*(uint128_t*)data.m_BlockStart ^= *(uint128_t*)&roundKey;
 }

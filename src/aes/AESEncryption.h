@@ -39,7 +39,11 @@ struct Block<128> {
 	}
 
 	uint8_t& At(uint8_t col, uint8_t row) const {
-		return m_BlockStart[row + col * c_BlockDims];
+		return m_BlockStart[col + row * c_BlockDims];
+	}
+
+	uint8_t& operator()(uint8_t col, uint8_t row) {
+		return At(col, row);
 	}
 
 	uint128_t ToUInt128() {
@@ -68,10 +72,10 @@ private:
 	static void EncryptBlock128(Block<128>& block, const std::vector<RoundKey>& roundKeys);
 
 	// The round operations
-	static void SubBytes128(std::vector<uint8_t>& data, const RoundKey& roundKey);
-	static void ShiftRows128(std::vector<uint8_t>& data, const RoundKey& roundKey);
-	static void MixColumns128(std::vector<uint8_t>& data, const RoundKey& roundKey);
-	static void XorRoundKey128(std::vector<uint8_t>& data, const RoundKey& roundKey);
+	static void SubBytes128(Block<128>& data, const RoundKey& roundKey);
+	static void ShiftRows128(Block<128>& data, const RoundKey& roundKey);
+	static void MixColumns128(Block<128>& data, const RoundKey& roundKey);
+	static void AddRoundKey128(Block<128>& data, const RoundKey& roundKey);
 };
 
 #endif // AESENCRYPTION_H
