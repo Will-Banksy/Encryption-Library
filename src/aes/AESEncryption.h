@@ -57,7 +57,7 @@ public:
 	/// Encrypts/Decrypts data using AES - The key does not have to be 128 bits as it will be converted to 128-bit (using my own method, but it should be pretty good)
 	static std::vector<uint8_t> AES128(std::vector<uint8_t> data, std::vector<uint8_t> key);
 
-private:
+// private:
 	virtual ~AESEncryption() = 0;
 	static Rand* rand;
 	/// From: <a href="https://etutorials.org/Networking/802.11+security.+wi-fi+protected+access+and+802.11i/Appendixes/Appendix+A.+Overview+of+the+AES+Block+Cipher/Steps+in+the+AES+Encryption+Process/">AES Steps</a><br>
@@ -69,7 +69,7 @@ private:
 	/// Generates the round keys
 	static std::vector<RoundKey> GenRoundKeys128(const std::vector<uint8_t>& key, Rand* rand);
 
-	static void EncryptBlock128(Block<128>& block, const std::vector<RoundKey>& roundKeys);
+	static void EncryptBlock128(Block<128>& block, const std::vector<RoundKey>& roundKeys, bool doAesni = true);
 
 	// The round operations
 	static void SubBytes128(Block<128>& data, const RoundKey& roundKey);
