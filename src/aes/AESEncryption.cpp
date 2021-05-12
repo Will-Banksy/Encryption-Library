@@ -182,8 +182,6 @@ void AESEncryption::EncryptBlock128(Block<128>& block, const std::vector<RoundKe
 		for(uint8_t i = 0; i < roundKeys.size(); i++) {
 			if(i == 0) {
 				// XOR
-// 				uint128_t& b = *(uint128_t*)block.m_BlockStart;
-// 				b ^= *(uint128_t*)&roundKeys.at(0);
 				AddRoundKey128(block, roundKeys.at(i));
 			} else if(i == roundKeys.size() - 1) {
 				// AESENCLAST
